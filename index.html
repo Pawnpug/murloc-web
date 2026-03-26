@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Murloc — Coming Soon</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --navy: #0b1433;
+      --blue: #a8d4f8;
+      --blue-dim: rgba(168, 212, 248, 0.15);
+      --blue-mid: rgba(168, 212, 248, 0.5);
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--navy);
+      color: var(--blue);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── layout ── */
+    .page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+      gap: 0;
+    }
+
+    /* ── logo ── */
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      animation: fadeUp 0.9s ease both;
+    }
+
+    .logo-img {
+      width: 120px;
+      height: 120px;
+      image-rendering: pixelated;
+    }
+
+    /* ── wordmark ── */
+    .wordmark {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    /* ── divider ── */
+    .divider {
+      width: 48px;
+      height: 2px;
+      background: var(--blue-mid);
+      margin: 4px 0 12px;
+    }
+
+    /* ── tagline ── */
+    .tagline {
+      font-size: clamp(0.8rem, 2vw, 1rem);
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--blue-mid);
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    /* ── animated dots ── */
+    .dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: var(--blue-mid);
+      border-radius: 0;
+      animation: blink 1.2s step-start infinite;
+    }
+
+    .dot:nth-child(1) { animation-delay: 0s; }
+    .dot:nth-child(2) { animation-delay: 0.3s; }
+    .dot:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes blink {
+      0%, 60%, 100% { opacity: 0.15; }
+      30%            { opacity: 1; }
+    }
+
+    /* ── animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--blue-dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--blue-dim) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <div class="page">
+    <div class="logo-wrap">
+      <img class="logo-img" src="logo.png" alt="Murloc logo" />
+      <div class="wordmark">Murloc</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+
+    const P = 10; // pixel block size
+    const GAP = 1; // gap between blocks
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Each stream is a sinusoidal snake of pixel blocks
+    class Stream {
+      constructor() {
+        this.init();
+      }
+
+      init() {
+        // spread streams across the full height
+        this.baseY     = Math.random() * window.innerHeight;
+        this.x         = -Math.random() * window.innerWidth * 0.8;
+        this.speed     = 0.25 + Math.random() * 0.45;
+
+        // two layered sine waves for an organic water feel
+        this.a1        = 20  + Math.random() * 60;
+        this.f1        = 0.008 + Math.random() * 0.012;
+        this.a2        = 8   + Math.random() * 20;
+        this.f2        = 0.02  + Math.random() * 0.025;
+
+        // phase offsets drift over time at different rates
+        this.phaseRate1 = 0.0004 + Math.random() * 0.0006;
+        this.phaseRate2 = 0.0007 + Math.random() * 0.001;
+        this.phase1     = Math.random() * Math.PI * 2;
+        this.phase2     = Math.random() * Math.PI * 2;
+
+        this.trailLen  = 18 + Math.floor(Math.random() * 22);
+        this.maxOpacity= 0.25 + Math.random() * 0.45;
+        this.trail     = [];
+      }
+
+      update(t) {
+        this.phase1 += this.phaseRate1;
+        this.phase2 += this.phaseRate2;
+        this.x      += this.speed;
+
+        const dy =
+          this.a1 * Math.sin(this.f1 * this.x + this.phase1) +
+          this.a2 * Math.sin(this.f2 * this.x + this.phase2);
+
+        const px = Math.round(this.x / P) * P;
+        const py = Math.round((this.baseY + dy) / P) * P;
+
+        // only push when grid position changes
+        const last = this.trail[0];
+        if (!last || last.gx !== px || last.gy !== py) {
+          this.trail.unshift({ gx: px, gy: py });
+          if (this.trail.length > this.trailLen) this.trail.pop();
+        }
+
+        if (this.x > window.innerWidth + P * this.trailLen) {
+          this.init();
+          // restart from the left with a fresh random Y
+          this.x = -P * this.trailLen;
+        }
+      }
+
+      draw() {
+        const len = this.trail.length;
+        for (let i = 0; i < len; i++) {
+          const { gx, gy } = this.trail[i];
+          // head is brightest, tail fades out
+          const t = i / len;
+          const opacity = this.maxOpacity * Math.pow(1 - t, 1.6);
+          ctx.fillStyle = `rgba(168, 212, 248, ${opacity.toFixed(3)})`;
+          ctx.fillRect(gx, gy, P - GAP, P - GAP);
+        }
+      }
+    }
+
+    const STREAM_COUNT = 14;
+    const streams = Array.from({ length: STREAM_COUNT }, () => new Stream());
+
+    function loop(t) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const s of streams) {
+        s.update(t);
+        s.draw();
+      }
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
