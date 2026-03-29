@@ -73,6 +73,34 @@
       color: var(--blue);
     }
 
+    /* ── building line ── */
+    .building {
+      font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--blue-mid);
+      font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+      margin-top: 4px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hammer {
+      position: absolute;
+      left: calc(100% + 8px);
+      color: var(--blue-mid);
+      transform-origin: 50% 100%;
+      animation: hammerSwing 0.7s ease-in-out infinite;
+    }
+
+    @keyframes hammerSwing {
+      0%, 100% { transform: rotate(0deg); }
+      50%      { transform: rotate(-35deg); }
+    }
+
     /* ── divider ── */
     .divider {
       width: 48px;
@@ -146,6 +174,15 @@
     <div class="logo-wrap">
       <img class="logo-img" src="logo.png" alt="Murloc logo" />
       <div class="wordmark">Murloc</div>
+      <div class="building">
+        Building...
+        <svg class="hammer" viewBox="0 0 7 11" width="9" height="14" shape-rendering="crispEdges">
+          <!-- handle (vertical) -->
+          <rect x="3" y="3" width="1" height="8" fill="currentColor"/>
+          <!-- head (horizontal T-bar) -->
+          <rect x="0" y="0" width="7" height="3" fill="currentColor"/>
+        </svg>
+      </div>
     </div>
   </div>
 
